@@ -91,84 +91,61 @@ namespace AdvancedNetworkLib
 				this.socket.Close();
 			}
 		}
-		//public void disconnect2()
-		//{
-		//	if (this.Connected)
-		//	{
-		//		this.socket.BeginDisconnect(false, (ar) =>
-		//		{
-		//			try
-		//			{
-		//				this.socket.EndDisconnect(ar);
-		//			}
-		//			catch (SocketException exc)
-		//			{
-		//				base.callEvent(delegate { this.ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs { Exception = exc }); });
-		//			}
-
-		//		}, null);
-		//	}
-		//}
 		public void send(object obj)
 		{
 			if (this.Connected)
 			{
-				BinaryFormatter bf = new BinaryFormatter();
-				using (MemoryStream ms = new MemoryStream())
+				byte[] bytes = this.serializeObject(obj);
+
+				this.socket.BeginSend(bytes, 0, bytes.Length, SocketFlags.None, (ar) =>
 				{
-					bf.Serialize(ms, obj);
-
-					byte[] sizeBytes = BitConverter.GetBytes(ms.Length);
-					byte[] bytes = new byte[sizeof(long) + ms.Length];
-					Array.Copy(sizeBytes, 0, bytes, 0, sizeBytes.Length);
-					Array.Copy(ms.ToArray(), 0, bytes, sizeBytes.Length, ms.Length);
-
-					// TODO: Split object to send in multiple parts
-					this.socket.BeginSend(bytes, 0, bytes.Length, SocketFlags.None, (ar) =>
-					{
-						try
-						{
-							int sendByteCount = this.socket.EndSend(ar);
-							this.callEvent(delegate { this.SendSuccessfull?.Invoke(this, EventArgs.Empty); });
-						}
-						catch (Exception exc)
-						{
-							base.callEvent(delegate { this.ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs { Exception = exc }); });
-						}
-
-					}, null);
-				}
-			}
-		}
-		public void sendSync(object obj)
-		{
-			if (this.Connected)
-			{
-				BinaryFormatter bf = new BinaryFormatter();
-				using (MemoryStream ms = new MemoryStream())
-				{
-					bf.Serialize(ms, obj);
-
-					byte[] sizeBytes = BitConverter.GetBytes(ms.Length);
-					byte[] bytes = new byte[sizeof(long) + ms.Length];
-					Array.Copy(sizeBytes, 0, bytes, 0, sizeBytes.Length);
-					Array.Copy(ms.ToArray(), 0, bytes, sizeBytes.Length, ms.Length);
-
-					// TODO: Split object to send in multiple parts
 					try
 					{
-						int sendByteCount = this.socket.Send(bytes, SocketFlags.None);
+						int sendByteCount = this.socket.EndSend(ar);
 						this.callEvent(delegate { this.SendSuccessfull?.Invoke(this, EventArgs.Empty); });
 					}
 					catch (Exception exc)
 					{
 						base.callEvent(delegate { this.ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs { Exception = exc }); });
 					}
+
+				}, null);
+			}
+		}
+		public void sendSync(object obj)
+		{
+			if (this.Connected)
+			{
+				byte[] bytes = this.serializeObject(obj);
+
+				try
+				{
+					int sendByteCount = this.socket.Send(bytes, SocketFlags.None);
+					this.callEvent(delegate { this.SendSuccessfull?.Invoke(this, EventArgs.Empty); });
+				}
+				catch (Exception exc)
+				{
+					base.callEvent(delegate { this.ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs { Exception = exc }); });
 				}
 			}
 		}
 
 		// Private Methods
+		private byte[] serializeObject(object obj)
+		{
+			BinaryFormatter bf = new BinaryFormatter();
+			using (MemoryStream ms = new MemoryStream())
+			{
+				bf.Serialize(ms, obj);
+
+				byte[] sizeBytes = BitConverter.GetBytes(ms.Length);
+				byte[] bytes = new byte[sizeof(long) + ms.Length];
+				Array.Copy(sizeBytes, 0, bytes, 0, sizeBytes.Length);
+				Array.Copy(ms.ToArray(), 0, bytes, sizeBytes.Length, ms.Length);
+
+				return bytes;
+			}
+		}
 		private void processReceivedBytes(int byteCount, int offset = 0)
 		{
 			// Fancy algorithm to read multiple packets from stream ( ͡° ͜ʖ ͡°)
