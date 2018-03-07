@@ -178,7 +178,7 @@ namespace AdvancedNetworkLib
 			}
 			else if (this.readMode == ReadMode.Object)
 			{
-				int objectBytesLeft = (int)(this.finalObjectSize - this.objectSizeBytes.Length);
+				int objectBytesLeft = (int)(this.finalObjectSize - this.objectBytes.Length);
 
 				if (byteCount >= objectBytesLeft)
 				{
