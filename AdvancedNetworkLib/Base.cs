@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using System;
+using System.Net.Sockets;
 using System.Windows.Forms;
 
 namespace AdvancedNetworkLib
@@ -18,7 +19,14 @@ namespace AdvancedNetworkLib
 		{
 			if (this.control != null)
 			{
-				this.control.Invoke(action);
+				try
+				{
+					this.control.Invoke(action);
+				}
+				catch (ObjectDisposedException)
+				{
+					this.control = null;
+				}
 			}
 			else
 			{
