@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using System;
+using System.Net.Sockets;
 using System.Windows.Forms;
 
 namespace AdvancedNetworkLib
@@ -22,7 +23,14 @@ namespace AdvancedNetworkLib
 			}
 			else
 			{
-				action();
+				try
+				{
+					action();
+				}
+				catch (Exception exc)
+				{
+					Console.WriteLine(exc.StackTrace+"\n"+exc.Message);
+				}
 			}
 		}
 	}
