@@ -23,10 +23,6 @@
 */
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AdvancedNetworkLib
 {
@@ -51,13 +47,8 @@ namespace AdvancedNetworkLib
 		public bool Listening { get; set; }
 	}
 
-	public class ClientsChangedEventArgs : EventArgs
+	public class ClientConnectionChangedEventArgs<T> : ConnectionChangedEventArgs
 	{
-		public IEnumerable<Client> Clients { get; set; }
-	}
-
-	public class PublicIPEventArgs : EventArgs
-	{
-		public string IP { get; set; }
+		public Client<T> Client { get; set; }
 	}
 }

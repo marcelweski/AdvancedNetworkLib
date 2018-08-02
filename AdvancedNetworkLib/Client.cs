@@ -31,16 +31,17 @@ using System.IO;
 
 namespace AdvancedNetworkLib
 {
-	public class Client : Base
-    {
-		// Variables
-		private byte[] bufferReceived;
+	public class Client: Client<object> { }
 
+	public class Client<T> : Base
+    {
+		// Fields
+		private byte[] bufferReceived;
 		private enum ReadMode
 		{
 			ObjectSize,
 			Object,
-		}
+		};
 		private ReadMode readMode;
 		private MemoryStream objectSizeBytes;
 		private MemoryStream objectBytes;
@@ -51,7 +52,7 @@ namespace AdvancedNetworkLib
 		public string Host { get => this.RemoteEndPoint.Address.ToString(); }
 		public ushort Port { get => Convert.ToUInt16(this.RemoteEndPoint.Port); }
 		public bool Connected { get => (this.socket != null ? this.socket.Connected : false); }
-		public object UserData { get; set; }
+		public T UserData { get; set; }
 
 		// Events
 		public event EventHandler<ErrorOccurredEventArgs> ErrorOccurred;
@@ -75,20 +76,20 @@ namespace AdvancedNetworkLib
 				{
 					this.bufferReceived = new byte[this.socket.ReceiveBufferSize];
 				}
-				this.socket.BeginReceive(this.bufferReceived, 0, this.bufferReceived.Length, SocketFlags.None, this.receive, null);
+				this.socket.BeginReceive(this.bufferReceived, 0, this.bufferReceived.Length, SocketFlags.None, this.Receive, null);
 			}
 		}
 		~Client()
 		{
 			try
 			{
-				this.disconnect();
+				this.Disconnect();
 			}
 			catch { }
 		}
 
 		// Public Methods
-		public void connect(string host, ushort port)
+		public void Connect(string host, ushort port)
 		{
 			if (!this.Connected)
 			{
@@ -100,62 +101,62 @@ namespace AdvancedNetworkLib
 
 				try
 				{
-					this.socket.BeginConnect(host, port, this.connectInternal, null);
+					this.socket.BeginConnect(host, port, this.ConnectInternal, null);
 				}
 				catch (SocketException exc)
 				{
-					base.callEvent(delegate { this.ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs { Exception = exc }); });
+					base.CallEvent(delegate { this.ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs { Exception = exc }); });
 				}
 			}
 		}
-		public void disconnect()
+		public void Disconnect()
 		{
 			if (this.Connected)
 			{
 				this.socket.Close();
 			}
 		}
-		public void send(object obj)
+		public void Send(object obj)
 		{
 			if (this.Connected)
 			{
-				byte[] bytes = this.serializeObject(obj);
+				byte[] bytes = this.SerializeObject(obj);
 
 				this.socket.BeginSend(bytes, 0, bytes.Length, SocketFlags.None, (ar) =>
 				{
 					try
 					{
 						int sendByteCount = this.socket.EndSend(ar);
-						this.callEvent(delegate { this.SendSuccessfull?.Invoke(this, EventArgs.Empty); });
+						this.CallEvent(delegate { this.SendSuccessfull?.Invoke(this, EventArgs.Empty); });
 					}
 					catch (Exception exc)
 					{
-						base.callEvent(delegate { this.ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs { Exception = exc }); });
+						base.CallEvent(delegate { this.ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs { Exception = exc }); });
 					}
 
 				}, null);
 			}
 		}
-		public void sendSync(object obj)
+		public void SendSync(object obj)
 		{
 			if (this.Connected)
 			{
-				byte[] bytes = this.serializeObject(obj);
+				byte[] bytes = this.SerializeObject(obj);
 
 				try
 				{
 					int sendByteCount = this.socket.Send(bytes, SocketFlags.None);
-					this.callEvent(delegate { this.SendSuccessfull?.Invoke(this, EventArgs.Empty); });
+					this.CallEvent(delegate { this.SendSuccessfull?.Invoke(this, EventArgs.Empty); });
 				}
 				catch (Exception exc)
 				{
-					base.callEvent(delegate { this.ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs { Exception = exc }); });
+					base.CallEvent(delegate { this.ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs { Exception = exc }); });
 				}
 			}
 		}
 
 		// Private Methods
-		private byte[] serializeObject(object obj)
+		private byte[] SerializeObject(object obj)
 		{
 			BinaryFormatter bf = new BinaryFormatter();
 			using (MemoryStream ms = new MemoryStream())
@@ -170,7 +171,7 @@ namespace AdvancedNetworkLib
 				return bytes;
 			}
 		}
-		private void processReceivedBytes(int byteCount, int offset = 0)
+		private void ProcessReceivedBytes(int byteCount, int offset = 0)
 		{
 			// Fancy algorithm to read multiple packets from stream ( ͡° ͜ʖ ͡°)
 			if (this.readMode == ReadMode.ObjectSize)
@@ -192,7 +193,7 @@ namespace AdvancedNetworkLib
 
 					if (byteCount > 0)
 					{
-						this.processReceivedBytes(byteCount, offset);
+						this.ProcessReceivedBytes(byteCount, offset);
 					}
 				}
 				else
@@ -212,7 +213,7 @@ namespace AdvancedNetworkLib
 					this.objectBytes.Seek(0, SeekOrigin.Begin);
 					object obj = bf.Deserialize(this.objectBytes);
 
-					base.callEvent(delegate { this.ObjectReceived?.Invoke(this, new ObjectReceivedEventArgs { Object = obj }); });
+					base.CallEvent(delegate { this.ObjectReceived?.Invoke(this, new ObjectReceivedEventArgs { Object = obj }); });
 
 					this.finalObjectSize = 0;
 					this.readMode = ReadMode.ObjectSize;
@@ -223,7 +224,7 @@ namespace AdvancedNetworkLib
 
 					if (byteCount > 0)
 					{
-						this.processReceivedBytes(byteCount, offset);
+						this.ProcessReceivedBytes(byteCount, offset);
 					}
 				}
 				else
@@ -232,48 +233,48 @@ namespace AdvancedNetworkLib
 				}
 			}
 		}
-		private void connectInternal(IAsyncResult ar)
+		private void ConnectInternal(IAsyncResult ar)
 		{
 			try
 			{
 				this.socket.EndConnect(ar);
 
-				base.callEvent(delegate { this.ConnectionChanged?.Invoke(this, new ConnectionChangedEventArgs { Connected = true, Lost = false }); });
+				base.CallEvent(delegate { this.ConnectionChanged?.Invoke(this, new ConnectionChangedEventArgs { Connected = true, Lost = false }); });
 
-				this.socket.BeginReceive(this.bufferReceived, 0, this.bufferReceived.Length, SocketFlags.None, this.receive, null);
+				this.socket.BeginReceive(this.bufferReceived, 0, this.bufferReceived.Length, SocketFlags.None, this.Receive, null);
 			}
 			catch (Exception exc)
 			{
-				base.callEvent(delegate { this.ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs { Exception = exc }); });
+				base.CallEvent(delegate { this.ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs { Exception = exc }); });
 			}
 		}
-		private void receive(IAsyncResult ar)
+		private void Receive(IAsyncResult ar)
 		{
 			try
 			{
 				int receivedByteCount = this.socket.EndReceive(ar);
 				if (receivedByteCount > 0)
 				{
-					this.processReceivedBytes(receivedByteCount);
-					this.socket.BeginReceive(this.bufferReceived, 0, this.bufferReceived.Length, SocketFlags.None, this.receive, null);
+					this.ProcessReceivedBytes(receivedByteCount);
+					this.socket.BeginReceive(this.bufferReceived, 0, this.bufferReceived.Length, SocketFlags.None, this.Receive, null);
 				}
 				else
 				{
 					this.socket.Close();
-					base.callEvent(delegate { this.ConnectionChanged?.Invoke(this, new ConnectionChangedEventArgs { Connected = false, Lost = true }); });
+					base.CallEvent(delegate { this.ConnectionChanged?.Invoke(this, new ConnectionChangedEventArgs { Connected = false, Lost = true }); });
 				}
 			}
 			catch (SocketException)
 			{
-				base.callEvent(delegate { this.ConnectionChanged?.Invoke(this, new ConnectionChangedEventArgs { Connected = false, Lost = true }); });
+				base.CallEvent(delegate { this.ConnectionChanged?.Invoke(this, new ConnectionChangedEventArgs { Connected = false, Lost = true }); });
 			}
 			catch (ObjectDisposedException)
 			{
-				base.callEvent(delegate { this.ConnectionChanged?.Invoke(this, new ConnectionChangedEventArgs { Connected = false, Lost = false }); });
+				base.CallEvent(delegate { this.ConnectionChanged?.Invoke(this, new ConnectionChangedEventArgs { Connected = false, Lost = false }); });
 			}
 			catch (Exception exc)
 			{
-				base.callEvent(delegate { this.ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs { Exception = exc }); });
+				base.CallEvent(delegate { this.ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs { Exception = exc }); });
 			}
 		}
     }

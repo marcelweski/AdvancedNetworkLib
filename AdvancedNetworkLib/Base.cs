@@ -30,7 +30,7 @@ namespace AdvancedNetworkLib
 {
 	public class Base
 	{
-		// Variables
+		// Fields
 		protected Socket socket;
 		protected Control control;
 
@@ -39,7 +39,7 @@ namespace AdvancedNetworkLib
 			this.control = control;
 		}
 
-		protected void callEvent(MethodInvoker action)
+		protected void CallEvent(MethodInvoker action)
 		{
 			if (this.control != null)
 			{
@@ -60,7 +60,7 @@ namespace AdvancedNetworkLib
 				}
 				catch (Exception exc)
 				{
-					Console.WriteLine(exc.StackTrace+"\n"+exc.Message);
+					throw exc;
 				}
 			}
 		}
