@@ -161,12 +161,12 @@ namespace AdvancedNetworkLib
 		{
 			var client = sender as Client<T>;
 
-			base.CallEvent(delegate { this.ClientsChanged?.Invoke(this, new ClientConnectionChangedEventArgs<T> { Client = client, Connected = false, Lost = e.Lost }); });
-
 			lock (this.clients)
 			{
 				this.clients.Remove(client);
 			}
+
+			base.CallEvent(delegate { this.ClientsChanged?.Invoke(this, new ClientConnectionChangedEventArgs<T> { Client = client, Connected = false, Lost = e.Lost }); });
 		}
 	}
 }
